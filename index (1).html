@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sì vs No — Referendum Giustizia 2026</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@300;400;500&display=swap');
+  :root {
+    --si:#2563EB;--no:#DC2626;--bg:#0A0A0F;--surface:#13131A;--surface2:#1C1C26;
+    --border:#2A2A38;--text:#F0F0F5;--muted:#7070A0;--accent:#F59E0B;
+  }
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'DM Mono',monospace;background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden}
+  header{padding:1.25rem 1.5rem;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:1.5rem;position:sticky;top:0;background:var(--bg);z-index:100}
+  .logo{font-family:'Syne',sans-serif;font-weight:800;font-size:1.3rem;letter-spacing:-.03em;white-space:nowrap}
+  .logo .si{color:var(--si)}.logo .vs{color:var(--muted);font-size:.85em}.logo .no{color:var(--no)}
+  .search-wrap{flex:1;max-width:460px;position:relative}
+  .search-wrap input{width:100%;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:.6rem 1rem .6rem 2.5rem;color:var(--text);font-family:'DM Mono',monospace;font-size:.83rem;outline:none;transition:border-color .2s}
+  .search-wrap input:focus{border-color:var(--si)}
+  .search-wrap input::placeholder{color:var(--muted)}
+  .search-icon{position:absolute;left:.8rem;top:50%;transform:translateY(-50%);color:var(--muted);font-size:.95rem;pointer-events:none}
+  #ac{position:absolute;top:calc(100% + 4px);left:0;right:0;background:var(--surface2);border:1px solid var(--border);border-radius:8px;max-height:300px;overflow-y:auto;z-index:200;display:none}
+  #ac.open{display:block}
+  .ac-item{padding:.55rem 1rem;cursor:pointer;display:flex;justify-content:space-between;align-items:center;font-size:.8rem;border-bottom:1px solid var(--border);transition:background .12s}
+  .ac-item:last-child{border-bottom:none}.ac-item:hover{background:var(--surface)}
+  .ac-item .name{font-weight:500}.ac-item .meta{color:var(--muted);font-size:.72rem}
+  .cmp-btn{background:var(--surface);border:1px solid var(--border);color:var(--text);padding:.55rem 1rem;border-radius:8px;font-family:'DM Mono',monospace;font-size:.78rem;cursor:pointer;transition:all .15s;white-space:nowrap}
+  .cmp-btn:hover{border-color:var(--accent);color:var(--accent)}
+  .cmp-btn.active{background:var(--accent);color:#000;border-color:var(--accent)}
+  .layout{display:grid;grid-template-columns:260px 1fr;min-height:calc(100vh - 65px)}
+  .sidebar{border-right:1px solid var(--border);padding:1.25rem .75rem;overflow-y:auto;max-height:calc(100vh - 65px);position:sticky;top:65px}
+  .sidebar h3{font-size:.65rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-bottom:.6rem;padding-left:.25rem}
+  .reg-list{list-style:none;margin-bottom:1.25rem}
+  .reg-item{padding:.45rem .65rem;border-radius:6px;cursor:pointer;display:flex;align-items:center;justify-content:space-between;transition:background .12s;font-size:.8rem}
+  .reg-item:hover{background:var(--surface)}.reg-item.active{background:var(--surface2)}
+  .bar-mini{width:52px;height:4px;border-radius:2px;overflow:hidden;display:flex;flex-shrink:0}
+  .bar-mini .bsi{background:var(--si)}.bar-mini .bno{background:var(--no)}
+  .content{padding:1.75rem;overflow-y:auto}
+  .cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:.85rem;margin-bottom:1.75rem}
+  .card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:1.1rem}
+  .card .lbl{font-size:.65rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:.3rem}
+  .card .val{font-family:'Syne',sans-serif;font-size:1.9rem;font-weight:800;line-height:1}
+  .card .val.si{color:var(--si)}.card .val.no{color:var(--no)}.card .sub{font-size:.72rem;color:var(--muted);margin-top:.25rem}
+  .vote-bar-wrap{margin-bottom:1.75rem}
+  .vote-bar-wrap h2{font-family:'Syne',sans-serif;font-size:1rem;margin-bottom:.65rem}
+  .vote-bar{height:44px;border-radius:9px;overflow:hidden;display:flex;position:relative}
+  .seg-si{background:var(--si);display:flex;align-items:center;padding:0 .9rem;font-family:'Syne',sans-serif;font-weight:700;font-size:.95rem;transition:width .5s cubic-bezier(.4,0,.2,1)}
+  .seg-no{background:var(--no);flex:1;display:flex;align-items:center;justify-content:flex-end;padding:0 .9rem;font-family:'Syne',sans-serif;font-weight:700;font-size:.95rem}
+  .midline{position:absolute;left:50%;top:0;bottom:0;width:2px;background:rgba(255,255,255,.12)}
+  .sec-title{font-size:.65rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin:1.75rem 0 .85rem;display:flex;align-items:center;gap:.65rem}
+  .sec-title::after{content:'';flex:1;height:1px;background:var(--border)}
+  .tbl-wrap{background:var(--surface);border:1px solid var(--border);border-radius:10px;overflow:hidden;margin-bottom:1.75rem}
+  .tbl-head{display:grid;grid-template-columns:1fr 80px 80px 80px 100px 44px;padding:.65rem .9rem;border-bottom:1px solid var(--border);font-size:.65rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+  .tbl-row{display:grid;grid-template-columns:1fr 80px 80px 80px 100px 44px;padding:.6rem .9rem;border-bottom:1px solid var(--border);font-size:.8rem;align-items:center;cursor:pointer;transition:background .12s}
+  .tbl-row:last-child{border-bottom:none}.tbl-row:hover{background:var(--surface2)}
+  .tbl-row .nome{font-weight:500}.psi{color:var(--si)}.pno{color:var(--no)}
+  .mini-bar{height:6px;border-radius:3px;overflow:hidden;display:flex;width:100%}
+  .mini-bar .bsi{background:var(--si)}.mini-bar .bno{background:var(--no)}
+  .add-cmp{background:none;border:1px solid var(--border);color:var(--muted);border-radius:4px;padding:.18rem .38rem;font-size:.68rem;cursor:pointer;transition:all .12s}
+  .add-cmp:hover{border-color:var(--accent);color:var(--accent)}
+  .add-cmp.added{border-color:var(--accent);color:var(--accent);background:rgba(245,158,11,.1)}
+  .pages{display:flex;gap:.5rem;justify-content:center;padding:.85rem;align-items:center;font-size:.77rem;color:var(--muted)}
+  .pages button{background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:.3rem .65rem;border-radius:5px;cursor:pointer;font-family:'DM Mono',monospace;font-size:.75rem}
+  .pages button:disabled{opacity:.3;cursor:default}.pages button:hover:not(:disabled){border-color:var(--si)}
+  .sez-head{display:grid;grid-template-columns:55px 75px 75px 75px 75px 1fr 36px 36px;padding:.55rem .9rem;font-size:.63rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);border-bottom:1px solid var(--border)}
+  .sez-row{display:grid;grid-template-columns:55px 75px 75px 75px 75px 1fr 36px 36px;padding:.5rem .9rem;font-size:.78rem;border-bottom:1px solid var(--border);align-items:center}
+  .sez-row:last-child{border-bottom:none}
+  .chart-grid{display:grid;grid-template-columns:1fr 1fr;gap:.85rem;margin-bottom:1.75rem}
+  .chart-box{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:1.1rem}
+  .chart-box h3{font-family:'Syne',sans-serif;font-size:.7rem;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin-bottom:.85rem}
+  .chart-box canvas{max-height:260px}
+  .bc{display:flex;gap:.45rem;align-items:center;margin-bottom:1.25rem;font-size:.78rem;color:var(--muted)}
+  .bc span{cursor:pointer;transition:color .12s}.bc span:hover{color:var(--text)}
+  .bc .sep{color:var(--border)}.bc .cur{color:var(--text);cursor:default}
+  .filter-row{display:flex;gap:.65rem;margin-bottom:.85rem;flex-wrap:wrap;align-items:center}
+  .filter-row select{background:var(--surface);border:1px solid var(--border);color:var(--text);padding:.38rem .7rem;border-radius:6px;font-family:'DM Mono',monospace;font-size:.75rem;outline:none;cursor:pointer}
+  .filter-row select:focus{border-color:var(--si)}
+  .filter-lbl{font-size:.72rem;color:var(--muted)}
+  .sort-btn{background:var(--surface);border:1px solid var(--border);color:var(--text);padding:.38rem .6rem;border-radius:6px;cursor:pointer;font-size:.75rem;font-family:'DM Mono',monospace}
+  .cmp-panel{position:fixed;bottom:0;left:0;right:0;background:var(--surface2);border-top:1px solid var(--border);padding:1rem 1.5rem;z-index:150;display:none;flex-direction:column;gap:.85rem}
+  .cmp-panel.open{display:flex}
+  .cmp-ph{display:flex;align-items:center;justify-content:space-between}
+  .cmp-ph h3{font-family:'Syne',sans-serif;font-size:.88rem}
+  .cmp-items{display:flex;gap:.85rem;flex-wrap:wrap;align-items:flex-start}
+  .cmp-card{background:var(--bg);border:1px solid var(--border);border-radius:9px;padding:.75rem .9rem;min-width:170px;position:relative}
+  .cmp-card .cn{font-family:'Syne',sans-serif;font-size:.82rem;font-weight:700;margin-bottom:.4rem;padding-right:1.2rem}
+  .cmp-card .cb{height:5px;border-radius:3px;overflow:hidden;display:flex;margin-bottom:.35rem}
+  .cmp-card .cp{display:flex;justify-content:space-between;font-size:.72rem}
+  .cmp-card .cp .cps{color:var(--si)}.cmp-card .cp .cpn{color:var(--no)}
+  .cmp-card .cr{position:absolute;top:.35rem;right:.45rem;background:none;border:none;color:var(--muted);cursor:pointer;font-size:.78rem}
+  .cmp-card .cr:hover{color:var(--no)}
+  .loading{display:flex;align-items:center;justify-content:center;min-height:280px;font-family:'Syne',sans-serif;font-size:.95rem;color:var(--muted);letter-spacing:.1em}
+  .loading::after{content:'';display:inline-block;width:14px;height:14px;border:2px solid var(--border);border-top-color:var(--si);border-radius:50%;margin-left:.9rem;animation:spin .7s linear infinite}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  ::-webkit-scrollbar{width:4px;height:4px}
+  ::-webkit-scrollbar-track{background:transparent}
+  ::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+  @media(max-width:860px){
+    .layout{grid-template-columns:1fr}.sidebar{display:none}
+    .chart-grid{grid-template-columns:1fr}
+    .tbl-head,.tbl-row{grid-template-columns:1fr 70px 70px 70px}
+    .tbl-head .h4,.tbl-row .c4,.tbl-head .h5,.tbl-row .c5,.tbl-head .h6,.tbl-row .c6{display:none}
+  }
+</style>
+</head>
+<body>
+<header>
+  <div class="logo"><span class="si">Sì</span><span class="vs"> vs </span><span class="no">No</span></div>
+  <div class="search-wrap">
+    <span class="search-icon">⌕</span>
+    <input type="text" id="srch" placeholder="Cerca comune, provincia, regione…" autocomplete="off">
+    <div id="ac"></div>
+  </div>
+  <button class="cmp-btn" id="cmpBtn" onclick="toggleCmpMode()">⊕ Confronta</button>
+</header>
+
+<div class="layout">
+  <aside class="sidebar">
+    <h3>Regioni</h3>
+    <ul class="reg-list" id="regList"></ul>
+  </aside>
+  <main class="content" id="main"><div class="loading">Caricamento dati</div></main>
+</div>
+
+<div class="cmp-panel" id="cmpPanel">
+  <div class="cmp-ph">
+    <h3>Confronto</h3>
+    <div style="display:flex;gap:.65rem;align-items:center">
+      <span style="font-size:.75rem;color:var(--muted)" id="cmpCnt">0 elementi</span>
+      <button class="sort-btn" onclick="clearCmp()">✕ Svuota</button>
+    </div>
+  </div>
+  <div class="cmp-items" id="cmpItems"></div>
+</div>
+
+<script>
+let D=null,SEZ=null;
+let S={view:'naz',reg:null,prov:null,com:null,page:0,ps:30,sb:'perc_no',sd:-1,cmpMode:false,cmp:[]};
+let CI={};
+
+async function boot(){
+  try{
+    const r=await fetch('data.json');
+    D=await r.json();
+    buildRegList();buildSrchIdx();renderView();
+  }catch(e){
+    document.getElementById('main').innerHTML=`<div style="padding:2rem;color:var(--no)">Errore: ${e.message}<br><small>Assicurati che data.json sia nella stessa cartella di index.html</small></div>`;
+  }
+}
+
+async function loadSez(){
+  if(SEZ)return SEZ;
+  const r=await fetch('sezioni.json');
+  SEZ=await r.json();
+  return SEZ;
+}
+
+// ── Region list ──
+function buildRegList(){
+  const ul=document.getElementById('regList');
+  ul.innerHTML='';
+  const nd=D.nazionale;
+  ul.innerHTML+=`<li class="reg-item${S.view==='naz'?' active':''}" onclick="goNaz()">
+    <span>Italia</span>
+    <div class="bar-mini"><div class="bsi" style="width:${nd.perc_si}%"></div><div class="bno" style="flex:1"></div></div>
+  </li>`;
+  const regs=Object.entries(D.regioni).sort((a,b)=>a[0].localeCompare(b[0]));
+  for(const[reg,d] of regs){
+    ul.innerHTML+=`<li class="reg-item${S.reg===reg&&S.view==='reg'?' active':''}" onclick="goReg('${esc(reg)}')">
+      <span>${cap(reg)}</span>
+      <div class="bar-mini"><div class="bsi" style="width:${d.perc_si}%"></div><div class="bno" style="flex:1"></div></div>
+    </li>`;
+  }
+}
+
+// ── Search ──
+let SIDX=[];
+function buildSrchIdx(){
+  for(const c of D.comuni) SIDX.push({lbl:cap(c.comune),sub:cap(c.provincia)+' · '+cap(c.regione),tipo:'com',obj:c});
+  for(const[k,d] of Object.entries(D.province)){const[r,p]=k.split('|');SIDX.push({lbl:cap(p),sub:'Provincia · '+cap(r),tipo:'prov',key:k,obj:d});}
+  for(const[r,d] of Object.entries(D.regioni)) SIDX.push({lbl:cap(r),sub:'Regione',tipo:'reg',key:r,obj:d});
+}
+
+const si=document.getElementById('srch'),ac=document.getElementById('ac');
+si.addEventListener('input',()=>{
+  const q=si.value.trim().toLowerCase();
+  if(q.length<2){ac.classList.remove('open');return;}
+  const res=SIDX.filter(x=>x.lbl.toLowerCase().includes(q)).slice(0,12);
+  if(!res.length){ac.classList.remove('open');return;}
+  ac.innerHTML=res.map((r,i)=>`<div class="ac-item" onclick="pickSrch(${i})"><span class="name">${r.lbl}</span><span class="meta">${r.sub}</span></div>`).join('');
+  ac._r=res;ac.classList.add('open');
+});
+function pickSrch(i){
+  const r=ac._r[i];ac.classList.remove('open');si.value='';
+  if(r.tipo==='com') goComObj(r.obj);
+  else if(r.tipo==='prov'){const[reg,pr]=r.key.split('|');goProv(reg,pr);}
+  else goReg(r.key);
+}
+document.addEventListener('click',e=>{if(!e.target.closest('.search-wrap'))ac.classList.remove('open');});
+
+// ── Nav ──
+function goNaz(){S.view='naz';S.reg=null;S.prov=null;S.com=null;S.page=0;buildRegList();renderView();}
+function goReg(r){S.view='reg';S.reg=r;S.prov=null;S.com=null;S.page=0;buildRegList();renderView();}
+function goProv(r,p){S.view='prov';S.reg=r;S.prov=p;S.com=null;S.page=0;buildRegList();renderView();}
+function goComObj(c){S.view='com';S.reg=c.regione;S.prov=c.provincia;S.com=c.comune;buildRegList();renderView();}
+function goBack(v){
+  if(v==='naz')goNaz();
+  else if(v==='reg'){S.view='reg';S.prov=null;S.com=null;S.page=0;buildRegList();renderView();}
+  else if(v==='prov'){S.view='prov';S.com=null;S.page=0;buildRegList();renderView();}
+}
+
+// ── Compare ──
+function toggleCmpMode(){S.cmpMode=!S.cmpMode;document.getElementById('cmpBtn').classList.toggle('active',S.cmpMode);}
+function addCmp(lbl,psi,pno,pvot,redd){
+  if(S.cmp.find(x=>x.lbl===lbl))return;
+  if(S.cmp.length>=6){alert('Max 6 elementi');return;}
+  S.cmp.push({lbl,psi,pno,pvot,redd});
+  renderCmpPanel();document.getElementById('cmpPanel').classList.add('open');
+}
+function remCmp(lbl){S.cmp=S.cmp.filter(x=>x.lbl!==lbl);renderCmpPanel();if(!S.cmp.length)document.getElementById('cmpPanel').classList.remove('open');}
+function clearCmp(){S.cmp=[];document.getElementById('cmpPanel').classList.remove('open');}
+function renderCmpPanel(){
+  document.getElementById('cmpCnt').textContent=S.cmp.length+' elementi';
+  document.getElementById('cmpItems').innerHTML=S.cmp.map(c=>`
+    <div class="cmp-card">
+      <button class="cr" onclick="remCmp('${esc(c.lbl)}')">✕</button>
+      <div class="cn">${c.lbl}</div>
+      <div class="cb"><div class="bsi" style="width:${c.psi}%;background:var(--si)"></div><div class="bno" style="flex:1;background:var(--no)"></div></div>
+      <div class="cp"><span class="cps">Sì ${c.psi}%</span><span class="cpn">No ${c.pno}%</span></div>
+      ${c.pvot?`<div style="font-size:.7rem;color:var(--muted);margin-top:.25rem">Affluenza ${c.pvot}%</div>`:''}
+      ${c.redd?`<div style="font-size:.7rem;color:var(--accent);margin-top:.1rem">€${fmt(c.redd)}</div>`:''}
+    </div>`).join('');
+}
+
+// ── Render ──
+function renderView(){
+  killCharts();
+  const el=document.getElementById('main');
+  if(S.view==='naz')renderNaz(el);
+  else if(S.view==='reg')renderReg(el);
+  else if(S.view==='prov')renderProv(el);
+  else if(S.view==='com')renderCom(el);
+}
+function killCharts(){for(const c of Object.values(CI)){try{c.destroy();}catch(e){}}CI={};}
+
+// ── Nazionale ──
+function renderNaz(el){
+  const d=D.nazionale;
+  el.innerHTML=`
+    ${bc([{lbl:'Italia',active:true}])}
+    ${cards(d)}
+    ${vbar(d,'Risultato nazionale')}
+    <div class="sec-title">Regioni</div>
+    ${regTable(Object.entries(D.regioni))}
+    <div class="sec-title">Grafici</div>
+    <div class="chart-grid">
+      <div class="chart-box"><h3>% No per regione</h3><canvas id="cReg"></canvas></div>
+      <div class="chart-box"><h3>Affluenza per regione</h3><canvas id="cAff"></canvas></div>
+    </div>
+    <div class="chart-grid">
+      <div class="chart-box"><h3>No% vs Reddito medio (comuni)</h3><canvas id="cScat"></canvas></div>
+      <div class="chart-box"><h3>Distribuzione % No (comuni)</h3><canvas id="cDist"></canvas></div>
+    </div>`;
+  drawRegNo('cReg');drawRegAff('cAff');drawScat('cScat',D.scatter.filter(c=>c.reddito<80000));drawDist('cDist',D.comuni);
+}
+
+function regTable(entries){
+  const sorted=[...entries].sort((a,b)=>b[1].perc_no-a[1].perc_no);
+  return `<div class="tbl-wrap">
+    <div class="tbl-head"><span>Regione</span><span>% Sì</span><span>% No</span><span>Affluenza</span><span class="h4">Barra</span><span class="h5"></span></div>
+    ${sorted.map(([r,d])=>`
+      <div class="tbl-row" onclick="goReg('${esc(r)}')">
+        <span class="nome">${cap(r)}</span>
+        <span class="psi">${d.perc_si}%</span><span class="pno">${d.perc_no}%</span><span>${d.perc_votanti}%</span>
+        <div class="mini-bar c4"><div class="bsi" style="width:${d.perc_si}%"></div><div class="bno" style="flex:1"></div></div>
+        <button class="add-cmp c5" onclick="event.stopPropagation();addCmp('${esc(cap(r))}',${d.perc_si},${d.perc_no},${d.perc_votanti},null)">+</button>
+      </div>`).join('')}
+  </div>`;
+}
+
+// ── Regione ──
+function renderReg(el){
+  const r=S.reg,d=D.regioni[r];
+  const provs=Object.entries(D.province).filter(([k])=>k.startsWith(r+'|'));
+  const comuni=D.comuni.filter(c=>c.regione===r);
+  el.innerHTML=`
+    ${bc([{lbl:'Italia',onclick:"goBack('naz')"},{lbl:cap(r),active:true}])}
+    ${cards(d)}
+    ${vbar(d,'Risultato '+cap(r))}
+    <div class="sec-title">Province (${provs.length})</div>
+    ${provTable(provs)}
+    <div class="sec-title">Comuni (${comuni.length})</div>
+    ${frow()}
+    ${comTable(comuni)}
+    <div class="chart-grid">
+      <div class="chart-box"><h3>% No per provincia</h3><canvas id="cProvNo"></canvas></div>
+      <div class="chart-box"><h3>No% vs Reddito (comuni)</h3><canvas id="cScat"></canvas></div>
+    </div>`;
+  drawProvNo('cProvNo',provs);
+  drawScat('cScat',comuni.filter(c=>c.reddito_medio).map(c=>({nome:cap(c.comune),reddito:c.reddito_medio,pno:c.perc_no,el:c.elettori})));
+}
+
+function provTable(entries){
+  const sorted=[...entries].sort((a,b)=>b[1].perc_no-a[1].perc_no);
+  return `<div class="tbl-wrap">
+    <div class="tbl-head"><span>Provincia</span><span>% Sì</span><span>% No</span><span>Affluenza</span><span class="h4">Barra</span><span class="h5"></span></div>
+    ${sorted.map(([k,d])=>{const[r,p]=k.split('|');return`
+      <div class="tbl-row" onclick="goProv('${esc(r)}','${esc(p)}')">
+        <span class="nome">${cap(p)}</span>
+        <span class="psi">${d.perc_si}%</span><span class="pno">${d.perc_no}%</span><span>${d.perc_votanti}%</span>
+        <div class="mini-bar c4"><div class="bsi" style="width:${d.perc_si}%"></div><div class="bno" style="flex:1"></div></div>
+        <button class="add-cmp c5" onclick="event.stopPropagation();addCmp('${esc(cap(p))}',${d.perc_si},${d.perc_no},${d.perc_votanti},null)">+</button>
+      </div>`;}).join('')}
+  </div>`;
+}
+
+// ── Provincia ──
+function renderProv(el){
+  const p=S.prov,r=S.reg,k=`${r}|${p}`,d=D.province[k];
+  const comuni=D.comuni.filter(c=>c.regione===r&&c.provincia===p);
+  el.innerHTML=`
+    ${bc([{lbl:'Italia',onclick:"goBack('naz')"},{lbl:cap(r),onclick:"goBack('reg')"},{lbl:cap(p),active:true}])}
+    ${cards(d)}
+    ${vbar(d,'Risultato '+cap(p))}
+    <div class="sec-title">Comuni (${comuni.length})</div>
+    ${frow()}
+    ${comTable(comuni)}
+    <div class="chart-grid">
+      <div class="chart-box"><h3>No% vs Reddito (comuni)</h3><canvas id="cScat"></canvas></div>
+      <div class="chart-box"><h3>Distribuzione % No</h3><canvas id="cDist"></canvas></div>
+    </div>`;
+  drawScat('cScat',comuni.filter(c=>c.reddito_medio).map(c=>({nome:cap(c.comune),reddito:c.reddito_medio,pno:c.perc_no,el:c.elettori})));
+  drawDist('cDist',comuni);
+}
+
+// ── Comune ──
+function renderCom(el){
+  const com=D.comuni.find(c=>c.comune===S.com&&c.regione===S.reg);
+  if(!com)return;
+  el.innerHTML=`
+    ${bc([{lbl:'Italia',onclick:"goBack('naz')"},{lbl:cap(S.reg),onclick:"goBack('reg')"},{lbl:cap(S.prov),onclick:"goBack('prov')"},{lbl:cap(S.com),active:true}])}
+    ${cards(com)}
+    ${vbar(com,'Risultato '+cap(S.com))}
+    <div class="cards" style="margin-top:-.5rem">
+      ${com.reddito_medio?`<div class="card"><div class="lbl">Reddito medio</div><div class="val" style="color:var(--accent)">€${fmt(com.reddito_medio)}</div><div class="sub">MEF 2023</div></div>`:''}
+      <div class="card"><div class="lbl">Sezioni</div><div class="val" style="color:var(--text);font-size:1.5rem">${com.n_sezioni}</div><div class="sub">sezioni elettorali</div></div>
+      <div class="card"><div class="lbl">Schede bianche/nulle</div><div class="val" style="color:var(--muted);font-size:1.3rem">${fmt(com.schede_bianche)}/${fmt(com.schede_nulle)}</div><div class="sub">non valide</div></div>
+    </div>
+    <div class="sec-title">Sezioni elettorali</div>
+    <div id="sezBox"><div class="loading">Caricamento sezioni</div></div>
+    <div class="chart-grid" style="margin-top:1.5rem">
+      <div class="chart-box"><h3>Sì/No per sezione</h3><canvas id="cSez"></canvas></div>
+      <div class="chart-box"><h3>Affluenza per sezione</h3><canvas id="cSezAff"></canvas></div>
+    </div>`;
+  loadSezForCom(com);
+}
+
+async function loadSezForCom(com){
+  const all=await loadSez();
+  const sezioni=all[String(com.cod_comune)]||[];
+  const box=document.getElementById('sezBox');
+  box.innerHTML=`<div class="tbl-wrap">
+    <div class="sez-head"><span>Sez.</span><span>Elettori</span><span>Affluenza</span><span class="psi">% Sì</span><span class="pno">% No</span><span>Barra</span><span>Bn</span><span>Nu</span></div>
+    ${sezioni.map(s=>`
+      <div class="sez-row">
+        <span>${s.n}</span><span>${fmt(s.el)}</span><span>${s.pvot}%</span>
+        <span class="psi">${s.psi}%</span><span class="pno">${s.pno}%</span>
+        <div class="mini-bar"><div class="bsi" style="width:${s.psi}%"></div><div class="bno" style="flex:1"></div></div>
+        <span style="color:var(--muted)">${s.bn}</span><span style="color:var(--muted)">${s.nu}</span>
+      </div>`).join('')}
+  </div>`;
+  if(!sezioni.length)return;
+  const lbls=sezioni.map(s=>'S.'+s.n);
+  CI['cSez']=new Chart(document.getElementById('cSez'),{type:'bar',data:{labels:lbls,datasets:[
+    {label:'% Sì',data:sezioni.map(s=>s.psi),backgroundColor:'rgba(37,99,235,.75)',borderRadius:3},
+    {label:'% No',data:sezioni.map(s=>s.pno),backgroundColor:'rgba(220,38,38,.75)',borderRadius:3}
+  ]},options:copts()});
+  CI['cSezAff']=new Chart(document.getElementById('cSezAff'),{type:'bar',data:{labels:lbls,datasets:[
+    {label:'Affluenza %',data:sezioni.map(s=>s.pvot),backgroundColor:'rgba(245,158,11,.75)',borderRadius:3}
+  ]},options:copts()});
+}
+
+// ── Components ──
+function cards(d){return`<div class="cards">
+  <div class="card"><div class="lbl">Voti Sì</div><div class="val si">${d.perc_si}%</div><div class="sub">${fmt(d.voti_si)} voti</div></div>
+  <div class="card"><div class="lbl">Voti No</div><div class="val no">${d.perc_no}%</div><div class="sub">${fmt(d.voti_no)} voti</div></div>
+  <div class="card"><div class="lbl">Affluenza</div><div class="val" style="color:var(--accent)">${d.perc_votanti}%</div><div class="sub">${fmt(d.votanti)} / ${fmt(d.elettori)}</div></div>
+  <div class="card"><div class="lbl">Voti validi</div><div class="val" style="color:var(--text);font-size:1.5rem">${fmt(d.voti_si+d.voti_no)}</div><div class="sub">su ${fmt(d.votanti)} votanti</div></div>
+</div>`;}
+
+function vbar(d,t){return`<div class="vote-bar-wrap"><h2>${t}</h2>
+  <div class="vote-bar">
+    <div class="seg-si" style="width:${d.perc_si}%">Sì ${d.perc_si}%</div>
+    <div class="seg-no">No ${d.perc_no}%</div>
+    <div class="midline"></div>
+  </div>
+</div>`;}
+
+function bc(items){return`<div class="bc">${items.map((item,i)=>{
+  if(item.active)return`<span class="cur">${item.lbl}</span>`;
+  const oc=item.onclick?`onclick="${item.onclick}"`:'';
+  return`<span ${oc}>${item.lbl}</span><span class="sep">›</span>`;
+}).join('')}</div>`;}
+
+function frow(){return`<div class="filter-row">
+  <span class="filter-lbl">Ordina:</span>
+  <select onchange="chgSort(this.value)">
+    <option value="perc_no" ${S.sb==='perc_no'?'selected':''}>% No</option>
+    <option value="perc_si" ${S.sb==='perc_si'?'selected':''}>% Sì</option>
+    <option value="perc_votanti" ${S.sb==='perc_votanti'?'selected':''}>Affluenza</option>
+    <option value="reddito_medio" ${S.sb==='reddito_medio'?'selected':''}>Reddito</option>
+    <option value="elettori" ${S.sb==='elettori'?'selected':''}>Elettori</option>
+  </select>
+  <button class="sort-btn" onclick="togDir()">${S.sd===-1?'↓ Desc':'↑ Asc'}</button>
+</div>`;}
+
+function chgSort(v){S.sb=v;S.page=0;renderView();}
+function togDir(){S.sd*=-1;S.page=0;renderView();}
+
+function comTable(comuni){
+  const sorted=[...comuni].sort((a,b)=>{const av=a[S.sb]??-1,bv=b[S.sb]??-1;return(av-bv)*S.sd;});
+  const tot=sorted.length,pages=Math.ceil(tot/S.ps),pg=sorted.slice(S.page*S.ps,(S.page+1)*S.ps);
+  return`<div class="tbl-wrap">
+    <div class="tbl-head"><span>Comune</span><span>% Sì</span><span>% No</span><span>Affluenza</span><span class="h4">Barra</span><span class="h5"></span></div>
+    ${pg.map(c=>`
+      <div class="tbl-row" onclick="goComObj(D.comuni.find(x=>x.comune==='${esc(c.comune)}'&&x.provincia==='${esc(c.provincia)}'))">
+        <span class="nome">${cap(c.comune)}</span>
+        <span class="psi">${c.perc_si}%</span><span class="pno">${c.perc_no}%</span><span>${c.perc_votanti}%</span>
+        <div class="mini-bar c4"><div class="bsi" style="width:${c.perc_si}%"></div><div class="bno" style="flex:1"></div></div>
+        <button class="add-cmp c5" onclick="event.stopPropagation();addCmp('${esc(cap(c.comune))}',${c.perc_si},${c.perc_no},${c.perc_votanti},${c.reddito_medio||'null'})">+</button>
+      </div>`).join('')}
+  </div>
+  <div class="pages">
+    <button onclick="chgPg(${S.page-1})" ${S.page===0?'disabled':''}>← Prec</button>
+    <span>Pag. ${S.page+1}/${pages} · ${tot} comuni</span>
+    <button onclick="chgPg(${S.page+1})" ${S.page>=pages-1?'disabled':''}>Succ →</button>
+  </div>`;}
+
+function chgPg(p){S.page=p;renderView();window.scrollTo(0,0);}
+
+// ── Charts ──
+function copts(){return{responsive:true,plugins:{legend:{labels:{color:'#7070A0',font:{family:'DM Mono',size:10}}},tooltip:{bodyFont:{family:'DM Mono'},titleFont:{family:'Syne'}}},scales:{x:{ticks:{color:'#7070A0',font:{family:'DM Mono',size:9}},grid:{color:'#2A2A38'}},y:{ticks:{color:'#7070A0',font:{family:'DM Mono',size:9}},grid:{color:'#2A2A38'}}}};}
+
+function drawRegNo(id){
+  const regs=Object.entries(D.regioni).sort((a,b)=>b[1].perc_no-a[1].perc_no);
+  CI[id]=new Chart(document.getElementById(id),{type:'bar',data:{
+    labels:regs.map(([r])=>cap(r).slice(0,11)),
+    datasets:[{label:'% No',data:regs.map(([,d])=>d.perc_no),backgroundColor:regs.map(([,d])=>d.perc_no>50?'rgba(220,38,38,.8)':'rgba(37,99,235,.8)'),borderRadius:4}]
+  },options:copts()});
+}
+function drawRegAff(id){
+  const regs=Object.entries(D.regioni).sort((a,b)=>b[1].perc_votanti-a[1].perc_votanti);
+  CI[id]=new Chart(document.getElementById(id),{type:'bar',data:{
+    labels:regs.map(([r])=>cap(r).slice(0,11)),
+    datasets:[{label:'Affluenza %',data:regs.map(([,d])=>d.perc_votanti),backgroundColor:'rgba(245,158,11,.75)',borderRadius:4}]
+  },options:copts()});
+}
+function drawProvNo(id,provs){
+  const sorted=[...provs].sort((a,b)=>b[1].perc_no-a[1].perc_no);
+  CI[id]=new Chart(document.getElementById(id),{type:'bar',data:{
+    labels:sorted.map(([k])=>cap(k.split('|')[1]).slice(0,12)),
+    datasets:[{label:'% No',data:sorted.map(([,d])=>d.perc_no),backgroundColor:sorted.map(([,d])=>d.perc_no>50?'rgba(220,38,38,.8)':'rgba(37,99,235,.8)'),borderRadius:4}]
+  },options:copts()});
+}
+function drawScat(id,pts){
+  if(!document.getElementById(id))return;
+  CI[id]=new Chart(document.getElementById(id),{type:'scatter',data:{datasets:[{label:'Comuni',
+    data:pts.map(c=>({x:c.reddito,y:c.pno,n:c.nome})),
+    backgroundColor:pts.map(c=>c.pno>50?'rgba(220,38,38,.45)':'rgba(37,99,235,.45)'),
+    pointRadius:pts.map(c=>Math.max(3,Math.min(8,(c.el||1000)/5000)))
+  }]},options:{responsive:true,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>`${c.raw.n}: No ${c.raw.y}%, €${fmt(c.raw.x)}`},bodyFont:{family:'DM Mono'}}},scales:{
+    x:{title:{display:true,text:'Reddito medio €',color:'#7070A0',font:{family:'DM Mono',size:9}},ticks:{color:'#7070A0',font:{family:'DM Mono',size:9}},grid:{color:'#2A2A38'}},
+    y:{title:{display:true,text:'% No',color:'#7070A0',font:{family:'DM Mono',size:9}},ticks:{color:'#7070A0',font:{family:'DM Mono',size:9}},grid:{color:'#2A2A38'}}
+  }}});
+}
+function drawDist(id,comuni){
+  const bins=Array(10).fill(0);
+  for(const c of comuni){const idx=Math.min(9,Math.floor(c.perc_no/10));bins[idx]++;}
+  CI[id]=new Chart(document.getElementById(id),{type:'bar',data:{
+    labels:bins.map((_,i)=>`${i*10}-${(i+1)*10}%`),
+    datasets:[{label:'N° comuni',data:bins,backgroundColor:bins.map((_,i)=>i>=5?'rgba(220,38,38,.7)':'rgba(37,99,235,.7)'),borderRadius:4}]
+  },options:copts()});
+}
+
+// ── Utils ──
+function cap(s){if(!s)return'';return s.toLowerCase().replace(/\b\w/g,c=>c.toUpperCase());}
+function fmt(n){if(n==null)return'–';return Number(n).toLocaleString('it-IT');}
+function esc(s){return(s||'').replace(/'/g,"\\'");}
+
+boot();
+</script>
+</body>
+</html>
