@@ -87,12 +87,13 @@
   .filter-row select:focus{border-color:var(--si)}
   .filter-lbl{font-size:.72rem;color:var(--muted)}
   .sort-btn{background:var(--surface);border:1px solid var(--border);color:var(--text);padding:.38rem .6rem;border-radius:6px;cursor:pointer;font-size:.75rem;font-family:'DM Mono',monospace}
-  .cmp-panel{position:fixed;bottom:0;left:0;right:0;background:var(--surface2);border-top:1px solid var(--border);padding:1rem 1.5rem;z-index:150;display:none;flex-direction:column;gap:.85rem}
+  .cmp-panel{position:fixed;bottom:0;left:0;right:0;background:var(--surface2);border-top:1px solid var(--border);padding:1rem 1.5rem;z-index:150;display:none;flex-direction:column;gap:.85rem;max-height:65vh;overflow-y:auto}
   .cmp-panel.open{display:flex}
-  .cmp-ph{display:flex;align-items:center;justify-content:space-between}
+  .cmp-ph{display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;background:var(--surface2);padding-bottom:.5rem;z-index:1}
   .cmp-ph h3{font-family:'Syne',sans-serif;font-size:.88rem}
   .cmp-items{display:flex;gap:.85rem;flex-wrap:wrap;align-items:flex-start}
   .cmp-card{background:var(--bg);border:1px solid var(--border);border-radius:9px;padding:.75rem .9rem;min-width:170px;position:relative}
+  @media(max-width:600px){.cmp-items{flex-direction:column;width:100%}.cmp-card{min-width:unset;width:100%}.cmp-panel{padding:.85rem 1rem;max-height:75vh}}
   .cmp-card .cn{font-family:'Syne',sans-serif;font-size:.82rem;font-weight:700;margin-bottom:.4rem;padding-right:1.2rem}
   .cmp-card .cb{height:5px;border-radius:3px;overflow:hidden;display:flex;margin-bottom:.35rem}
   .cmp-card .cp{display:flex;justify-content:space-between;font-size:.72rem}
@@ -112,6 +113,14 @@
     .tbl-head .h4,.tbl-row .c4,.tbl-head .h5,.tbl-row .c5,.tbl-head .h6,.tbl-row .c6{display:none}
   }
 </style>
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-MMDZXYNFR7"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-MMDZXYNFR7');
+</script>
 </head>
 <body>
 <header>
