@@ -95,6 +95,15 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
   .filter-row select:focus{border-color:var(--si)}
   .filter-lbl{font-size:.72rem;color:var(--muted)}
   .sort-btn{background:var(--surface);border:1px solid var(--border);color:var(--text);padding:.38rem .6rem;border-radius:6px;cursor:pointer;font-size:.75rem;font-family:'DM Mono',monospace}
+  .filter-block{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:1rem 1.25rem;margin-bottom:.85rem}
+  .filter-block h4{font-size:.65rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:.85rem;display:flex;justify-content:space-between;align-items:center}
+  .filter-block h4 button{background:none;border:none;color:var(--accent);cursor:pointer;font-size:.7rem;font-family:'DM Mono',monospace}
+  .slider-row{display:grid;grid-template-columns:80px 1fr 1fr 60px;gap:.65rem;align-items:center;margin-bottom:.65rem;font-size:.75rem}
+  .slider-row label{color:var(--muted)}
+  .slider-row input[type=range]{-webkit-appearance:none;height:4px;border-radius:2px;background:var(--border);outline:none;cursor:pointer}
+  .slider-row input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:14px;height:14px;border-radius:50%;background:var(--accent);cursor:pointer}
+  .slider-val{color:var(--accent);font-size:.72rem;text-align:right}
+  .filter-active-badge{background:var(--accent);color:#000;border-radius:4px;padding:.1rem .4rem;font-size:.65rem;font-weight:700;margin-left:.5rem}
   .cmp-panel{position:fixed;bottom:0;left:0;right:0;background:var(--surface2);border-top:1px solid var(--border);padding:1rem 1.5rem;z-index:150;display:none;flex-direction:column;gap:.85rem;max-height:65vh;overflow-y:auto}
   .cmp-panel.open{display:flex}
   .cmp-ph{display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;background:var(--surface2);padding-bottom:.5rem;z-index:1}
@@ -167,7 +176,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 
 <script>
 let D=null,SEZ=null;
-let S={view:'naz',reg:null,prov:null,com:null,page:0,ps:30,sb:'perc_no',sd:-1,cmpMode:false,cmp:[]};
+let S={view:'naz',reg:null,prov:null,com:null,page:0,ps:30,sb:'perc_no',sd:-1,cmpMode:false,cmp:[],f:{noMin:0,noMax:100,redMin:0,redMax:150000,affMin:0,affMax:100,active:false}};
 let CI={};
 
 async function boot(){
@@ -256,6 +265,16 @@ function addCmp(lbl,psi,pno,pvot,redd){
   if(S.cmp.length>=6){alert('Max 6 elementi');return;}
   S.cmp.push({lbl,psi,pno,pvot,redd});
   S.cmpMode=true;
+  // GTM event
+  window.dataLayer = window.dataLayer || [];
+  window.dataLayer.push({
+    event: 'aggiungi_confronto',
+    elemento: lbl,
+    perc_si: psi,
+    perc_no: pno,
+    affluenza: pvot,
+    reddito: redd
+  });
   renderCmpPanel();document.getElementById('cmpPanel').classList.add('open');
 }
 function remCmp(lbl){S.cmp=S.cmp.filter(x=>x.lbl!==lbl);renderCmpPanel();if(!S.cmp.length)document.getElementById('cmpPanel').classList.remove('open');}
@@ -444,23 +463,69 @@ function bc(items){return`<div class="bc">${items.map((item,i)=>{
   return`<span ${oc}>${item.lbl}</span><span class="sep">›</span>`;
 }).join('')}</div>`;}
 
-function frow(){return`<div class="filter-row">
-  <span class="filter-lbl">Ordina:</span>
-  <select onchange="chgSort(this.value)">
-    <option value="perc_no" ${S.sb==='perc_no'?'selected':''}>% No</option>
-    <option value="perc_si" ${S.sb==='perc_si'?'selected':''}>% Sì</option>
-    <option value="perc_votanti" ${S.sb==='perc_votanti'?'selected':''}>Affluenza</option>
-    <option value="reddito_medio" ${S.sb==='reddito_medio'?'selected':''}>Reddito</option>
-    <option value="elettori" ${S.sb==='elettori'?'selected':''}>Elettori</option>
-  </select>
-  <button class="sort-btn" onclick="togDir()">${S.sd===-1?'↓ Desc':'↑ Asc'}</button>
-</div>`;}
+function frow(){
+  const fa = S.f.active;
+  return`
+  <div class="filter-row">
+    <span class="filter-lbl">Ordina:</span>
+    <select onchange="chgSort(this.value)">
+      <option value="perc_no" ${S.sb==='perc_no'?'selected':''}>% No</option>
+      <option value="perc_si" ${S.sb==='perc_si'?'selected':''}>% Sì</option>
+      <option value="perc_votanti" ${S.sb==='perc_votanti'?'selected':''}>Affluenza</option>
+      <option value="reddito_medio" ${S.sb==='reddito_medio'?'selected':''}>Reddito</option>
+      <option value="elettori" ${S.sb==='elettori'?'selected':''}>Elettori</option>
+    </select>
+    <button class="sort-btn" onclick="togDir()">${S.sd===-1?'↓ Desc':'↑ Asc'}</button>
+    <button class="sort-btn" onclick="toggleFilters()" style="${fa?'border-color:var(--accent);color:var(--accent)':''}">
+      ⧩ Filtri${fa?'<span class=\"filter-active-badge\">ON</span>':''}
+    </button>
+  </div>
+  <div id="filterBlock" class="filter-block" style="display:${fa?'block':'none'}">
+    <h4>Filtri combinati <button onclick="resetFilters()">✕ Reset</button></h4>
+    <div class="slider-row">
+      <label>% No</label>
+      <input type="range" min="0" max="100" value="${S.f.noMin}" oninput="updFilter('noMin',+this.value);document.getElementById('noMinV').textContent=this.value+'%'">
+      <input type="range" min="0" max="100" value="${S.f.noMax}" oninput="updFilter('noMax',+this.value);document.getElementById('noMaxV').textContent=this.value+'%'">
+      <span class="slider-val"><span id="noMinV">${S.f.noMin}%</span>–<span id="noMaxV">${S.f.noMax}%</span></span>
+    </div>
+    <div class="slider-row">
+      <label>Affluenza</label>
+      <input type="range" min="0" max="100" value="${S.f.affMin}" oninput="updFilter('affMin',+this.value);document.getElementById('affMinV').textContent=this.value+'%'">
+      <input type="range" min="0" max="100" value="${S.f.affMax}" oninput="updFilter('affMax',+this.value);document.getElementById('affMaxV').textContent=this.value+'%'">
+      <span class="slider-val"><span id="affMinV">${S.f.affMin}%</span>–<span id="affMaxV">${S.f.affMax}%</span></span>
+    </div>
+    <div class="slider-row">
+      <label>Reddito</label>
+      <input type="range" min="0" max="150000" step="1000" value="${S.f.redMin}" oninput="updFilter('redMin',+this.value);document.getElementById('redMinV').textContent='€'+fmt(this.value)">
+      <input type="range" min="0" max="150000" step="1000" value="${S.f.redMax}" oninput="updFilter('redMax',+this.value);document.getElementById('redMaxV').textContent='€'+fmt(this.value)">
+      <span class="slider-val"><span id="redMinV">€${fmt(S.f.redMin)}</span>–<span id="redMaxV">€${fmt(S.f.redMax)}</span></span>
+    </div>
+  </div>`;
+}
 
 function chgSort(v){S.sb=v;S.page=0;renderView();}
 function togDir(){S.sd*=-1;S.page=0;renderView();}
+function toggleFilters(){S.f.active=!S.f.active;renderView();}
+function resetFilters(){S.f={noMin:0,noMax:100,redMin:0,redMax:150000,affMin:0,affMax:100,active:true};S.page=0;renderView();}
+function updFilter(k,v){S.f[k]=v;S.page=0;applyFilters();}
+function applyFilters(){
+  // Re-render just the table part without full re-render
+  renderView();
+}
+function filterData(items){
+  if(!S.f.active)return items;
+  return items.filter(c=>{
+    const no=c.perc_no??0,aff=c.perc_votanti??0,red=c.reddito_medio??null;
+    if(no<S.f.noMin||no>S.f.noMax)return false;
+    if(aff<S.f.affMin||aff>S.f.affMax)return false;
+    if(red!==null&&(red<S.f.redMin||red>S.f.redMax))return false;
+    return true;
+  });
+}
 
 function comTable(comuni){
-  const sorted=[...comuni].sort((a,b)=>{const av=a[S.sb]??-1,bv=b[S.sb]??-1;return(av-bv)*S.sd;});
+  const filtered=filterData(comuni);
+  const sorted=[...filtered].sort((a,b)=>{const av=a[S.sb]??-1,bv=b[S.sb]??-1;return(av-bv)*S.sd;});
   const tot=sorted.length,pages=Math.ceil(tot/S.ps),pg=sorted.slice(S.page*S.ps,(S.page+1)*S.ps);
   return`<div class="tbl-wrap">
     <div class="tbl-head"><span>Comune</span><span>% Sì</span><span>% No</span><span>Affluenza</span><span class="h4">Barra</span><span class="h5"></span></div>
