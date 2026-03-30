@@ -116,8 +116,9 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
   @media(max-width:860px){
     .layout{grid-template-columns:1fr}.sidebar{display:none}
     .chart-grid{grid-template-columns:1fr}
-    .tbl-head,.tbl-row{grid-template-columns:1fr 70px 70px 70px}
-    .tbl-head .h4,.tbl-row .c4,.tbl-head .h5,.tbl-row .c5,.tbl-head .h6,.tbl-row .c6{display:none}
+    .tbl-head,.tbl-row{grid-template-columns:1fr 60px 60px 60px 36px}
+    .tbl-head .h4,.tbl-row .c4,.tbl-head .h6,.tbl-row .c6{display:none}
+    .tbl-row .c5{display:flex;justify-content:center}
   }
 </style>
 
@@ -221,6 +222,14 @@ si.addEventListener('input',()=>{
 });
 function pickSrch(i){
   const r=ac._r[i];ac.classList.remove('open');si.value='';
+  // GTM dataLayer push
+  window.dataLayer = window.dataLayer || [];
+  window.dataLayer.push({
+    event: 'ricerca',
+    search_term: r.lbl,
+    search_type: r.tipo,
+    search_detail: r.sub
+  });
   if(r.tipo==='com') goComObj(r.obj);
   else if(r.tipo==='prov'){const[reg,pr]=r.key.split('|');goProv(reg,pr);}
   else goReg(r.key);
