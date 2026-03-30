@@ -79,8 +79,9 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
   .pages{display:flex;gap:.5rem;justify-content:center;padding:.85rem;align-items:center;font-size:.77rem;color:var(--muted)}
   .pages button{background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:.3rem .65rem;border-radius:5px;cursor:pointer;font-family:'DM Mono',monospace;font-size:.75rem}
   .pages button:disabled{opacity:.3;cursor:default}.pages button:hover:not(:disabled){border-color:var(--si)}
-  .sez-head{display:grid;grid-template-columns:55px 75px 75px 75px 75px 1fr 36px 36px;padding:.55rem .9rem;font-size:.63rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);border-bottom:1px solid var(--border)}
-  .sez-row{display:grid;grid-template-columns:55px 75px 75px 75px 75px 1fr 36px 36px;padding:.5rem .9rem;font-size:.78rem;border-bottom:1px solid var(--border);align-items:center}
+  .sez-head{display:grid;grid-template-columns:45px 70px 70px 70px 70px 1fr 30px 30px 36px;padding:.55rem .9rem;font-size:.63rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);border-bottom:1px solid var(--border)}
+  .sez-row{display:grid;grid-template-columns:45px 70px 70px 70px 70px 1fr 30px 30px 36px;padding:.5rem .9rem;font-size:.78rem;border-bottom:1px solid var(--border);align-items:center}
+  @media(max-width:860px){.sez-head{grid-template-columns:40px 0 65px 65px 65px 1fr 0 0 36px}.sez-row{grid-template-columns:40px 0 65px 65px 65px 1fr 0 0 36px}.sez-head span:nth-child(2),.sez-row span:nth-child(2),.sez-head span:nth-child(7),.sez-row span:nth-child(7),.sez-head span:nth-child(8),.sez-row span:nth-child(8){display:none}}
   .sez-row:last-child{border-bottom:none}
   .chart-grid{display:grid;grid-template-columns:1fr 1fr;gap:.85rem;margin-bottom:1.75rem}
   .chart-box{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:1.1rem}
@@ -119,6 +120,8 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
     .tbl-head,.tbl-row{grid-template-columns:1fr 60px 60px 60px 36px}
     .tbl-head .h4,.tbl-row .c4,.tbl-head .h6,.tbl-row .c6{display:none}
     .tbl-row .c5{display:flex;justify-content:center}
+    .search-wrap{max-width:100%}
+    #ac{position:fixed;left:0;right:0;top:65px;border-radius:0;border-left:none;border-right:none;max-height:50vh}
   }
 </style>
 
@@ -398,13 +401,14 @@ async function loadSezForCom(com){
   const sezioni=all[String(com.cod_comune)]||[];
   const box=document.getElementById('sezBox');
   box.innerHTML=`<div class="tbl-wrap">
-    <div class="sez-head"><span>Sez.</span><span>Elettori</span><span>Affluenza</span><span class="psi">% Sì</span><span class="pno">% No</span><span>Barra</span><span>Bn</span><span>Nu</span></div>
+    <div class="sez-head"><span>Sez.</span><span>Elettori</span><span>Affluenza</span><span class="psi">% Sì</span><span class="pno">% No</span><span>Barra</span><span>Bn</span><span>Nu</span><span></span></div>
     ${sezioni.map(s=>`
       <div class="sez-row">
         <span>${s.n}</span><span>${fmt(s.el)}</span><span>${s.pvot}%</span>
         <span class="psi">${s.psi}%</span><span class="pno">${s.pno}%</span>
         <div class="mini-bar"><div class="bsi" style="width:${s.psi}%"></div><div class="bno" style="flex:1"></div></div>
         <span style="color:var(--muted)">${s.bn}</span><span style="color:var(--muted)">${s.nu}</span>
+        <button class="add-cmp" onclick="event.stopPropagation();addCmp('${esc(cap(S.com))} S.${s.n}',${s.psi},${s.pno},${s.pvot},null)">+</button>
       </div>`).join('')}
   </div>`;
   if(!sezioni.length)return;
