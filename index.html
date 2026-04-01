@@ -120,6 +120,26 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
   .loading{display:flex;align-items:center;justify-content:center;min-height:280px;font-family:'Syne',sans-serif;font-size:.95rem;color:var(--muted);letter-spacing:.1em}
   .loading::after{content:'';display:inline-block;width:14px;height:14px;border:2px solid var(--border);border-top-color:var(--si);border-radius:50%;margin-left:.9rem;animation:spin .7s linear infinite}
   @keyframes spin{to{transform:rotate(360deg)}}
+  .insight-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:.85rem;margin-bottom:1.75rem}
+  .insight-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:1.25rem;cursor:pointer;transition:all .2s;position:relative;overflow:hidden}
+  .insight-card:hover{border-color:var(--accent);transform:translateY(-2px)}
+  .insight-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--si),var(--no))}
+  .ic-icon{font-size:1.5rem;margin-bottom:.5rem}
+  .ic-label{font-size:.7rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:.4rem}
+  .ic-value{font-family:'Syne',sans-serif;font-weight:800;font-size:1.8rem;line-height:1;margin-bottom:.25rem}
+  .ic-sub{font-size:.75rem;color:var(--muted);margin-bottom:.5rem}
+  .ic-cta{font-size:.72rem;color:var(--accent);font-weight:500}
+  .search-cta{background:var(--surface);border:1px dashed var(--border);border-radius:10px;padding:1rem 1.25rem;font-size:.85rem;color:var(--muted);cursor:pointer;margin-bottom:1.75rem;transition:all .2s;text-align:center}
+  .search-cta:hover{border-color:var(--si);color:var(--text)}
+  .top10-wrap{background:var(--surface);border:1px solid var(--border);border-radius:10px;overflow:hidden;margin-bottom:1.75rem}
+  .top10-tabs{display:flex;border-bottom:1px solid var(--border)}
+  .t10-tab{flex:1;padding:.65rem;background:none;border:none;color:var(--muted);font-family:'DM Mono',monospace;font-size:.78rem;cursor:pointer;border-bottom:2px solid transparent;transition:all .15s}
+  .t10-tab:hover{color:var(--text)}.t10-tab.active{color:var(--text);border-bottom-color:var(--accent)}
+  .top10-row{display:grid;grid-template-columns:28px 1fr 60px 80px 36px;padding:.6rem .9rem;border-bottom:1px solid var(--border);align-items:center;gap:.5rem;cursor:pointer;transition:background .12s;font-size:.8rem}
+  .top10-row:last-child{border-bottom:none}.top10-row:hover{background:var(--surface2)}
+  .t10-rank{color:var(--muted);font-size:.75rem;text-align:center}
+  .t10-name{font-weight:500}.t10-name small{color:var(--muted);font-weight:400;font-size:.72rem;display:block}
+  .t10-val{font-family:'Syne',sans-serif;font-weight:700;font-size:.9rem;text-align:right}
   ::-webkit-scrollbar{width:4px;height:4px}
   ::-webkit-scrollbar-track{background:transparent}
   ::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
@@ -306,26 +326,139 @@ function killCharts(){for(const c of Object.values(CI)){try{c.destroy();}catch(e
 // ── Nazionale ──
 function renderNaz(el){
   const d=D.nazionale;
+  // Compute top10
+  const byNo=[...D.comuni].sort((a,b)=>b.perc_no-a.perc_no).slice(0,10);
+  const bySi=[...D.comuni].sort((a,b)=>b.perc_si-a.perc_si).slice(0,10);
+  const byAff=[...D.comuni].sort((a,b)=>b.perc_votanti-a.perc_votanti).slice(0,10);
+  const byRed=[...D.comuni].filter(c=>c.reddito_medio).sort((a,b)=>b.reddito_medio-a.reddito_medio).slice(0,10);
+  const comMaxNo=byNo[0],comMaxSi=bySi[0],comMaxAff=byAff[0];
+  const richVotedNo=byRed.filter(c=>c.perc_no>50).length;
+
   el.innerHTML=`
     ${bc([{lbl:'Italia',active:true}])}
     ${cards(d)}
     ${vbar(d,'Risultato nazionale')}
+
+    <div class="sec-title">Scopri</div>
+    <div class="insight-grid">
+      <div class="insight-card" onclick="goComObj(D.comuni.find(x=>x.comune==='${esc(comMaxNo.comune)}'&&x.provincia==='${esc(comMaxNo.provincia)}'))">
+        <div class="ic-icon">🏆</div>
+        <div class="ic-label">Comune con più No</div>
+        <div class="ic-value no">${comMaxNo.perc_no}%</div>
+        <div class="ic-sub">${cap(comMaxNo.comune)}, ${cap(comMaxNo.provincia)}</div>
+        <div class="ic-cta">Esplora →</div>
+      </div>
+      <div class="insight-card" onclick="goComObj(D.comuni.find(x=>x.comune==='${esc(comMaxSi.comune)}'&&x.provincia==='${esc(comMaxSi.provincia)}'))">
+        <div class="ic-icon">🌟</div>
+        <div class="ic-label">Comune con più Sì</div>
+        <div class="ic-value si">${comMaxSi.perc_si}%</div>
+        <div class="ic-sub">${cap(comMaxSi.comune)}, ${cap(comMaxSi.provincia)}</div>
+        <div class="ic-cta">Esplora →</div>
+      </div>
+      <div class="insight-card" onclick="goComObj(D.comuni.find(x=>x.comune==='${esc(comMaxAff.comune)}'&&x.provincia==='${esc(comMaxAff.provincia)}'))">
+        <div class="ic-icon">📊</div>
+        <div class="ic-label">Massima affluenza</div>
+        <div class="ic-value" style="color:var(--accent)">${comMaxAff.perc_votanti}%</div>
+        <div class="ic-sub">${cap(comMaxAff.comune)}, ${cap(comMaxAff.provincia)}</div>
+        <div class="ic-cta">Esplora →</div>
+      </div>
+      <div class="insight-card" onclick="document.getElementById('scatterSection').scrollIntoView({behavior:'smooth'})">
+        <div class="ic-icon">💰</div>
+        <div class="ic-label">Comuni ricchi → come hanno votato?</div>
+        <div class="ic-value" style="color:var(--accent);font-size:1.1rem">${richVotedNo} su 10</div>
+        <div class="ic-sub">dei comuni più ricchi hanno votato No</div>
+        <div class="ic-cta">Vedi correlazione →</div>
+      </div>
+    </div>
+
+    <div class="sec-title">Cerca il tuo comune</div>
+    <div class="search-cta" onclick="document.getElementById('srch').focus()">
+      🔍 Scrivi il nome del tuo comune nella barra in alto
+    </div>
+
     <div class="sec-title">Regioni</div>
+    ${frow()}
     ${regTable(Object.entries(D.regioni))}
-    <div class="sec-title">Grafici</div>
+
+    <div class="sec-title">Top 10 comuni</div>
+    ${top10Tabs(byNo,bySi,byAff)}
+
+    <div class="sec-title" id="scatterSection">Reddito vs Voto</div>
+    <div class="chart-grid">
+      <div class="chart-box"><h3>No% vs Reddito medio (comuni) — ogni punto è un comune</h3><canvas id="cScat"></canvas></div>
+      <div class="chart-box"><h3>Distribuzione % No (comuni)</h3><canvas id="cDist"></canvas></div>
+    </div>
     <div class="chart-grid">
       <div class="chart-box"><h3>% No per regione</h3><canvas id="cReg"></canvas></div>
       <div class="chart-box"><h3>Affluenza per regione</h3><canvas id="cAff"></canvas></div>
-    </div>
-    <div class="chart-grid">
-      <div class="chart-box"><h3>No% vs Reddito medio (comuni)</h3><canvas id="cScat"></canvas></div>
-      <div class="chart-box"><h3>Distribuzione % No (comuni)</h3><canvas id="cDist"></canvas></div>
     </div>`;
-  drawRegNo('cReg');drawRegAff('cAff');drawScat('cScat',D.scatter.filter(c=>c.reddito<80000));drawDist('cDist',D.comuni);
+
+  drawRegNo('cReg');drawRegAff('cAff');
+  drawScat('cScat',D.scatter.filter(c=>c.reddito<80000));
+  drawDist('cDist',D.comuni);
+  initTop10Tabs();
 }
 
+function top10Tabs(byNo,bySi,byAff){
+  return`<div class="top10-wrap">
+    <div class="top10-tabs">
+      <button class="t10-tab active" id="tab-no" onclick="switchTop10('no')">🔴 Più No</button>
+      <button class="t10-tab" id="tab-si" onclick="switchTop10('si')">🔵 Più Sì</button>
+      <button class="t10-tab" id="tab-aff" onclick="switchTop10('aff')">📊 Affluenza</button>
+    </div>
+    <div id="top10-no" class="top10-list">
+      ${byNo.map((c,i)=>`
+        <div class="top10-row" onclick="goComObj(D.comuni.find(x=>x.comune==='${esc(c.comune)}'&&x.provincia==='${esc(c.provincia)}'))">
+          <span class="t10-rank">${i+1}</span>
+          <span class="t10-name">${cap(c.comune)} <small>${cap(c.provincia)}</small></span>
+          <span class="t10-val no">${c.perc_no}%</span>
+          <div class="mini-bar" style="width:80px"><div class="bsi" style="width:${c.perc_si}%"></div><div class="bno" style="flex:1"></div></div>
+          <button class="add-cmp" onclick="event.stopPropagation();addCmp('${esc(cap(c.comune))}',${c.perc_si},${c.perc_no},${c.perc_votanti},${c.reddito_medio||'null'})">+</button>
+        </div>`).join('')}
+    </div>
+    <div id="top10-si" class="top10-list" style="display:none">
+      ${bySi.map((c,i)=>`
+        <div class="top10-row" onclick="goComObj(D.comuni.find(x=>x.comune==='${esc(c.comune)}'&&x.provincia==='${esc(c.provincia)}'))">
+          <span class="t10-rank">${i+1}</span>
+          <span class="t10-name">${cap(c.comune)} <small>${cap(c.provincia)}</small></span>
+          <span class="t10-val si">${c.perc_si}%</span>
+          <div class="mini-bar" style="width:80px"><div class="bsi" style="width:${c.perc_si}%"></div><div class="bno" style="flex:1"></div></div>
+          <button class="add-cmp" onclick="event.stopPropagation();addCmp('${esc(cap(c.comune))}',${c.perc_si},${c.perc_no},${c.perc_votanti},${c.reddito_medio||'null'})">+</button>
+        </div>`).join('')}
+    </div>
+    <div id="top10-aff" class="top10-list" style="display:none">
+      ${byAff.map((c,i)=>`
+        <div class="top10-row" onclick="goComObj(D.comuni.find(x=>x.comune==='${esc(c.comune)}'&&x.provincia==='${esc(c.provincia)}'))">
+          <span class="t10-rank">${i+1}</span>
+          <span class="t10-name">${cap(c.comune)} <small>${cap(c.provincia)}</small></span>
+          <span class="t10-val" style="color:var(--accent)">${c.perc_votanti}%</span>
+          <div class="mini-bar" style="width:80px"><div class="bsi" style="width:${c.perc_si}%"></div><div class="bno" style="flex:1"></div></div>
+          <button class="add-cmp" onclick="event.stopPropagation();addCmp('${esc(cap(c.comune))}',${c.perc_si},${c.perc_no},${c.perc_votanti},${c.reddito_medio||'null'})">+</button>
+        </div>`).join('')}
+    </div>
+  </div>`;
+}
+
+function switchTop10(tab){
+  ['no','si','aff'].forEach(t=>{
+    document.getElementById('top10-'+t).style.display=t===tab?'block':'none';
+    document.getElementById('tab-'+t).classList.toggle('active',t===tab);
+  });
+}
+function initTop10Tabs(){switchTop10('no');}
+
 function regTable(entries){
-  const sorted=[...entries].sort((a,b)=>b[1].perc_no-a[1].perc_no);
+  // Apply filter
+  let filtered=entries.filter(([r,d])=>{
+    if(!S.f.active)return true;
+    if(d.perc_no<S.f.noMin||d.perc_no>S.f.noMax)return false;
+    if(d.perc_votanti<S.f.affMin||d.perc_votanti>S.f.affMax)return false;
+    return true;
+  });
+  const sorted=[...filtered].sort((a,b)=>{
+    const av=a[1][S.sb]??-1,bv=b[1][S.sb]??-1;
+    return(av-bv)*S.sd;
+  });
   return `<div class="tbl-wrap">
     <div class="tbl-head"><span>Regione</span><span>% Sì</span><span>% No</span><span>Affluenza</span><span class="h4">Barra</span><span class="h5"></span></div>
     ${sorted.map(([r,d])=>`
